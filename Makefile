@@ -1,4 +1,4 @@
-obj-m := occ-i2c.o
+obj-m := occ.o
 
 SRC := $(shell pwd)
 
