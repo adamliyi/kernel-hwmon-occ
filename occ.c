@@ -46,6 +46,14 @@ typedef struct {
 	uint16_t value;
 } powr_sensor;
 
+typedef struct {
+	uint16_t curr_powercap;
+	uint16_t curr_powerreading;
+	uint16_t norm_powercap;
+	uint16_t max_powercap;
+	uint16_t min_powercap;
+	uint16_t user_powerlimit;
+} caps_sensor;
 
 typedef struct {
 	char sensor_type[5];
@@ -55,6 +63,7 @@ typedef struct {
 	uint8_t num_of_sensors;
 	occ_sensor *sensor;
 	powr_sensor *powr;
+	caps_sensor *caps;
 } sensor_data_block;
 
 typedef struct {
@@ -87,6 +96,7 @@ typedef struct {
 	uint16_t temp_block_id;	
 	uint16_t freq_block_id;	
 	uint16_t power_block_id;	
+	uint16_t caps_block_id;	
 } occ_response_t;
 
 static occ_response_t occ_resp;
@@ -390,7 +400,7 @@ static int parse_occ_response(char* d, occ_response_t* o)
 			}
 		}
 		else if (strcmp(o->data.blocks[b].sensor_type, "POWR") == 0) {
-/*
+			
 			o->data.blocks[b].powr =
 				kzalloc(sizeof(powr_sensor) * o->data.blocks[b].num_of_sensors, GFP_KERNEL);
 			
@@ -399,7 +409,7 @@ static int parse_occ_response(char* d, occ_response_t* o)
 				goto abort;
 			}
 			o->power_block_id = b;
-			for (s = 0; s< o->data.blocks[b].num_of_sensors; s++) {
+			for (s = 0; s < o->data.blocks[b].num_of_sensors; s++) {
 				o->data.blocks[b].powr[s].sensor_id = d[dnum] << 8;
 				o->data.blocks[b].powr[s].sensor_id = o->data.blocks[b].powr[s].sensor_id | d[dnum+1];
 				o->data.blocks[b].powr[s].update_tag = d[dnum+2] << 24;
@@ -414,11 +424,45 @@ static int parse_occ_response(char* d, occ_response_t* o)
 				o->data.blocks[b].powr[s].value = o->data.blocks[b].powr[s].value | d[dnum+11];
 				
 				printk("sensor[%d]-[%d]: id: %u, value: %u\n",
-					b, s, o->data.blocks[b].sensor[s].sensor_id, o->data.blocks[b].sensor[s].value);
+					b, s, o->data.blocks[b].powr[s].sensor_id, o->data.blocks[b].powr[s].value);
 				
 				dnum = dnum + o->data.blocks[b].sensor_length;
 			}
-*/
+		}
+		else if (strcmp(o->data.blocks[b].sensor_type, "CAPS") == 0) {
+			
+			o->data.blocks[b].caps =
+				kzalloc(sizeof(caps_sensor) * o->data.blocks[b].num_of_sensors, GFP_KERNEL);
+
+                        if (o->data.blocks[b].caps == NULL) {
+                                ret = -ENOMEM;
+                                goto abort;
+                        }
+                        o->caps_block_id = b;
+			for (s = 0; s < o->data.blocks[b].num_of_sensors; s++) {
+				o->data.blocks[b].caps[s].curr_powercap = d[dnum] << 8;
+				o->data.blocks[b].caps[s].curr_powercap = o->data.blocks[b].caps[s].curr_powercap | d[dnum+1];
+				o->data.blocks[b].caps[s].curr_powerreading = d[dnum+2] << 8;
+				o->data.blocks[b].caps[s].curr_powerreading = o->data.blocks[b].caps[s].curr_powerreading | d[dnum+3];
+				o->data.blocks[b].caps[s].norm_powercap = d[dnum+4] << 8;
+				o->data.blocks[b].caps[s].norm_powercap = o->data.blocks[b].caps[s].norm_powercap | d[dnum+5];
+				o->data.blocks[b].caps[s].max_powercap = d[dnum+6] << 8;
+				o->data.blocks[b].caps[s].max_powercap = o->data.blocks[b].caps[s].max_powercap| d[dnum+7];
+				o->data.blocks[b].caps[s].min_powercap = d[dnum+8] << 8;
+				o->data.blocks[b].caps[s].min_powercap = o->data.blocks[b].caps[s].min_powercap| d[dnum+9];
+				o->data.blocks[b].caps[s].user_powerlimit = d[dnum+10] << 8;
+				o->data.blocks[b].caps[s].user_powerlimit = o->data.blocks[b].caps[s].user_powerlimit| d[dnum+11];
+
+				dnum = dnum + o->data.blocks[b].sensor_length;
+				printk("CAPS sensor #%d:\n", s);
+				printk("curr_powercap is %x \n", o->data.blocks[b].caps[s].curr_powercap);
+				printk("curr_powerreading is %x \n", o->data.blocks[b].caps[s].curr_powerreading);
+				printk("norm_powercap is %x \n", o->data.blocks[b].caps[s].norm_powercap);
+				printk("max_powercap is %x \n", o->data.blocks[b].caps[s].max_powercap);
+				printk("min_powercap is %x \n", o->data.blocks[b].caps[s].min_powercap);
+				printk("user_powerlimit is %x \n", o->data.blocks[b].caps[s].user_powerlimit);
+			}
+		
 		}
 		else {
       			printk("ERROR: sensor type %s not supported\n", o->data.blocks[b].sensor_type);
@@ -519,7 +563,7 @@ static int occ_get_all(struct i2c_client *client, occ_response_t *occ_resp)
 		return -1;
 	}
 	
-	for (b = 8; b < num_bytes; b = b + 8) {
+	for (b = 8; b < num_bytes + 8; b = b + 8) {
 		//occ_getscomb(client, SCOM_OCC_SRAM_DATA, occ_data, b);
 		occ_getscomb(client, OCB_DATA, occ_data, b);
 #ifdef DUMP_RAW
