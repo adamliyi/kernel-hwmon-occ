@@ -632,7 +632,8 @@ static ssize_t show_occ_temp_input(struct device *dev, struct device_attribute *
 
 	//printk("block_id: %d, sensor: %d\n", data->occ_resp->temp_block_id, n -1);	
 	sensor = &data->occ_resp->data.blocks[data->occ_resp->temp_block_id].sensor[n - 1];
-	val = sensor->value;
+	/* in millidegree Celsius */
+	val = sensor->value * 1000;
 	//printk("temp%d sensor value: %d\n", n, val);
 
 	//printk("------------- above are debug message, bellow is real output------------\n");	
