@@ -2,8 +2,12 @@
 HWMON driver for the openpower OCC. BMC uses it to read CPU sensor data via OCC (On-Chip-Controller).
 It is part of openbmc.
 
+To build the module seperately in OBCM, just type:
+
+# bitbake i2c-occ-mod
+
 After building, a kernel module named "occ.ko" is generated. Currently the module is located in:
-"lib/modules/4.2.0-openbmc-20151104-1/extra/occ.ko".
+"lib/modules/4.2.0-openbmc-20151104-1/extra/occ.ko". You can SCP occ.ko to a booted BMC.
 
 Bellow are steps tested on Palmetto:
 
